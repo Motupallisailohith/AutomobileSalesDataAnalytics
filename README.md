@@ -1,104 +1,77 @@
-import pandas as pd
-import numpy as np
-import tensorflow as tf
-import os
-import joblib
-from datetime import datetime # Needed for feature engineering consistency
-
-# --- Configuration & Paths ---
-MODEL_LOAD_DIR = "Price_Prediction_Model/scaler/"
-MODEL_FILENAME = "car_price_prediction_model.h5"
-FEATURE_SCALER_FILENAME = "feature_scaler.pkl"
-TARGET_SCALER_FILENAME = "target_scaler.pkl"
-
-# --- Main Model Usage Workflow ---
-if __name__ == "__main__":
-    print("--- Starting Price Prediction Model Usage ---")
-
-    # --- 1. Load Trained Model and Scalers ---
-    try:
-        model_path = os.path.join(MODEL_LOAD_DIR, MODEL_FILENAME)
-        loaded_model = tf.keras.models.load_model(model_path)
-        print(f"Model loaded successfully from: {model_path}")
-
-        feature_scaler_path = os.path.join(MODEL_LOAD_DIR, FEATURE_SCALER_FILENAME)
-        target_scaler_path = os.path.join(MODEL_LOAD_DIR, TARGET_SCALER_FILENAME)
-
-        feature_scaler = joblib.load(feature_scaler_path)
-        target_scaler = joblib.load(target_scaler_path)
-        print("Feature and target scalers loaded successfully.")
-        print("-" * 50)
-
-    except (OSError, FileNotFoundError) as e:
-        print(f"Error loading model or scalers: {e}")
-        print("Please ensure 'price_prediction_model_traning.py' has been run to train and save them.")
-        exit()
-    except Exception as e:
-        print(f"An unexpected error occurred during model/scaler loading: {e}")
-        exit()
-
-    # --- 2. Define Features ---
-    # These must be the EXACT same features used during training
-    features_for_prediction = ['year', 'condition', 'odometer', 'mmr', 'car_age', 'mileage_per_year']
-
-    # --- 3. Example New Data for Prediction ---
-    # IMPORTANT: This new data MUST have the same columns and be preprocessed
-    # in the EXACT same way as the training data.
-    # The 'car_age' and 'mileage_per_year' would typically be engineered here for new input.
-    # Replace with your actual new car data for prediction
-    example_new_cars_data = pd.DataFrame({
-        'year': [2018, 2020, 2017, 2022],
-        'make': ['Toyota', 'Honda', 'Nissan', 'Ford'], # Categorical features
-        'model': ['Camry', 'Civic', 'Altima', 'Mustang'], # will be ignored by this model, but shown for context
-        'condition': [4, 5, 3, 4],
-        'odometer': [50000, 25000, 70000, 10000],
-        'mmr': [18000, 22000, 15000, 35000],
-        'sellingprice': [np.nan, np.nan, np.nan, np.nan] # Target is unknown for new data
-    })
-    print("Example new car data for prediction:")
-    print(example_new_cars_data)
-    print("-" * 50)
-
-    # --- 4. Preprocess New Data (Crucial for consistency) ---
-    print("Preprocessing new data for prediction...")
-
-    # A. Feature Engineering (must match training script's engineering)
-    current_year = datetime.now().year # Ensure current year is consistent
-    example_new_cars_data['car_age'] = current_year - example_new_cars_data['year']
-    example_new_cars_data['mileage_per_year'] = example_new_cars_data['odometer'] / example_new_cars_data['car_age'].replace(0, np.nan)
-    example_new_cars_data['mileage_per_year'].fillna(0, inplace=True) # Fill NaN from division by zero with 0
-
-    # B. Select only the features the model was trained on
-    new_data_for_prediction_df = example_new_cars_data[features_for_prediction].copy()
-
-    # C. Scale numerical features using the *loaded* feature_scaler
-    scaled_new_data = pd.DataFrame(
-        feature_scaler.transform(new_data_for_prediction_df), # Use .transform, not .fit_transform
-        columns=features_for_prediction
-    )
-    print("New data preprocessed and scaled.")
-    print(scaled_new_data.head())
-    print("-" * 50)
+Here's a brief `README.md` for your "Automobile Sales Data Analysis" project:
 
 
-    # --- 5. Prepare Data for TensorFlow Model ---
-    # Convert scaled_new_data DataFrame to dictionary of NumPy arrays, as expected by model's inputs
-    input_for_model = {colname: np.array(scaled_new_data[colname]) for colname in features_for_prediction}
 
-    # No need for tf.data.Dataset.from_tensor_slices((dict(dataframe))) if making single predictions
-    # Model.predict can take dict of numpy arrays directly if inputs are set up with Input layers per feature.
+# Automobile Sales Data Analysis
 
-    # --- 6. Make Predictions ---
-    print("Making predictions...")
-    predictions_scaled = loaded_model.predict(input_for_model)
+A comprehensive project for analyzing and predicting used car prices through data cleaning, EDA, market trend analysis, and machine learning.
 
-    # --- 7. Inverse Transform Predictions to Original Scale ---
-    predicted_prices_rescaled = target_scaler.inverse_transform(predictions_scaled).flatten()
+## Description
 
-    # --- 8. Display Results ---
-    example_new_cars_data['Predicted_SellingPrice'] = predicted_prices_rescaled
-    print("\n--- Prediction Results ---")
-    print(example_new_cars_data[['make', 'model', 'year', 'odometer', 'Predicted_SellingPrice']])
-    print("-" * 50)
+This project processes automobile sales data to uncover insights into pricing dynamics, market trends, and seller performance. [cite\_start]It involves cleaning raw data, performing various statistical and exploratory analyses, and building a machine learning model to predict car selling prices[cite: 5, 6].
 
-    print("\n--- Price Prediction Model Usage script finished ---")
+## Key Features
+
+  Data Cleaning & Preprocessing: Handles missing values, outliers, and data type inconsistencies
+  Exploratory Data Analysis (EDA): Visualizes distributions, correlations, and identifies initial patterns.
+  Market Analysis: Compares prices across makes, models, and assesses the impact of car condition.
+  Seller Performance Analysis: Evaluates sellers based on average selling prices and sales volumes.
+  Time Series Analysis: Identifies trends and seasonal patterns in sales data.
+  Feature Engineering: Creates new features like `car_age` and `mileage_per_year`.
+  Price Prediction: Trains a TensorFlow deep learning model to predict car selling prices with high accuracy.
+  Interactive Data Filtering: Allows users to classify and filter data subsets.
+
+## Tools & Technologies
+
+  * Python: Core programming language.
+  * Pandas, NumPy: Data manipulation and numerical operations.
+  * Matplotlib, Seaborn: Data visualization.
+  * Scikit-learn: Data preprocessing, clustering, and metrics.
+  * TensorFlow: Machine learning model training and feature importance.
+  * Statsmodels: Time series analysis.
+
+## Getting Started
+
+### Prerequisites
+
+  Python 3.8+ [cite: 916]
+  * Git
+  * Pip (Python package installer)
+
+### Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/YOUR_GITHUB_USERNAME/automobile-sales-data-analysis.git
+    cd automobile-sales-data-analysis
+    ```
+2.  Create and activate a virtual environment:
+    ```bash
+    python -m venv .venv
+    # On Windows: `.\.venv\Scripts\activate`
+    # On macOS/Linux: `source .venv/bin/activate`
+    ```
+3.  Install dependencies:
+    ```bash
+    pip install pandas numpy matplotlib seaborn scikit-learn tensorflow statsmodels joblib
+    ```
+
+### How to Run
+
+Execute the Python scripts in sequence from the `src/` directory. For example:
+
+1.  Clean Data: `python src/Data_cleaning_and_preprocess.py`
+2.  Perform EDA: `python src/EDA.py`
+3.  Train Price Prediction Model: `python src/price_prediction_model_traning.py`
+
+## Architecture & Results
+
+ The project generates various plots illustrating data distributions, correlations, market trends, and model performance. [cite\_start]Key findings include the strong correlation between selling price and MMR (0.98) [cite: 280][cite\_start], and the model's high accuracy (R² of 0.978)[cite: 848].
+
+ \#\# Contributing
+
+Contributions are welcome\! Please fork the repository, create a new branch, make your changes, and open a pull request.
+
+## License
+
+This project is licensed under the MIT License.
